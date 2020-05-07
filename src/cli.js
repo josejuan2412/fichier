@@ -125,22 +125,25 @@ export async function cli(args) {
           }
           break;
         case "config":
+          console.log(values);
           if (!values.param)
             showErrorMessages("Please especify the configuration: URL, Port");
           else if (!values.setup)
             showErrorMessages("Please enter the configuration value.");
-          switch (values.param) {
-            case "url":
-              await setupURL(values.setup);
-              console.log("URL Access Updated Succesfully.");
-              break;
-            case "port":
-              await setupPort(values.setup);
-              console.log("Running port Updated Succesfully.");
-              break;
-            default:
-              showErrorMessages("This configuration type is not allowed.");
-              break;
+          else {
+            switch (values.param) {
+              case "url":
+                await setupURL(values.setup);
+                console.log("URL Access Updated Succesfully.");
+                break;
+              case "port":
+                await setupPort(values.setup);
+                console.log("Running port Updated Succesfully.");
+                break;
+              default:
+                showErrorMessages("This configuration type is not allowed.");
+                break;
+            }
           }
           break;
         case "list":
@@ -219,7 +222,7 @@ async function mostUsedCommands(value) {
 
 async function showHelpMessages() {
   try {
-    console.log("Share your files with ease.");
+    //console.log("Share your files with ease.");
     console.log(" \n");
     console.log("Usage: " + chalk.blueBright("  fichier {command} [options]"));
     console.log(" \n");
