@@ -11,6 +11,8 @@ import {
   setURL,
   clearSharing,
   removeFile,
+  setPort,
+  getPort,
 } from "../helpers/fileHandler";
 
 export async function fileShare(options) {
@@ -38,9 +40,27 @@ export async function fileShare(options) {
   }
 }
 
+export async function getSetupPort() {
+  try {
+    let port = await getPort();
+    return port;
+  } catch (e) {
+    console.log(e);
+  }
+}
+
 export async function setupURL(url) {
   try {
     await setURL(url);
+    return;
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+export async function setupPort(port) {
+  try {
+    await setPort(port);
     return;
   } catch (e) {
     console.log(e);
@@ -83,15 +103,6 @@ export async function clearSharingFile() {
     console.log(e);
   }
 }
-
-// export async function setupPort(port) {
-//   try {
-//     await setPort(port);
-//     return;
-//   } catch (e) {
-//     console.log(e);
-//   }
-// }
 
 const generateQR = async (text) => {
   try {

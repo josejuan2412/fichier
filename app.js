@@ -1,15 +1,9 @@
 import express from "express";
 import bodyParser from "body-parser";
-import { renderDownloadView } from "./views/render.js";
+//import { renderDownloadView } from "./views/render.js";
 import { getFilePath } from "./helpers/fileHandler";
 
 const app = express();
-
-// app.use(
-//   bodyParser.urlencoded({
-//     extended: false,
-//   })
-// );
 
 app.use(bodyParser.json());
 
@@ -26,11 +20,6 @@ app.use(function (req, res, next) {
   res.setHeader("Access-Control-Allow-Credentials", true);
   next();
 });
-
-// app.get("/", function (req, res) {
-//   let viewContent = renderDownloadView();
-//   res.send(viewContent);
-// });
 
 app.get("/download/:file", async (req, res) => {
   let file = req.params.file;
@@ -69,13 +58,13 @@ app.get("/download/:file", async (req, res) => {
 //   next();
 // });
 
-const PORT = process.env.PORT || 3000;
-
-async function startServer() {
-  app.listen(PORT, () => {
-    console.log(`App running on port: ${PORT}`);
-    console.log("WAITING FOR FILE DOWNLOADS");
-  });
+export async function startServer(port) {
+  try {
+    app.listen(port, () => {
+      console.log(`WAITING FOR FILE DOWNLOADS ON PORT: ${port}`);
+    });
+    return port;
+  } catch (e) {
+    console.log(e);
+  }
 }
-
-startServer();

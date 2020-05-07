@@ -27,7 +27,7 @@
   "bugs": {
     "url": "https://github.com/josejuan2412/fichier/issues"
   },
-  "homepage": "https://github.com/josejuan2412/fichier ",
+  "homepage": "https://github.com/josejuan2412/fichier",
   "dependencies": {
     "arg": "^4.1.3",
     "body-parser": "^1.19.0",

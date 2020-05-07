@@ -10,8 +10,10 @@ import {
   showFileQR,
   clearSharingFile,
   deleteSharingID,
+  setupPort,
+  getSetupPort,
 } from "./index";
-
+import { startServer } from "../app";
 import path from "path";
 import fs from "fs";
 
@@ -19,6 +21,7 @@ function parseArgumentsIntoOptions(rawArgs) {
   try {
     const args = arg(
       {
+        "--start": Boolean,
         "--share": Boolean,
         "-s": "--share",
         "--config": Boolean,
@@ -38,6 +41,7 @@ function parseArgumentsIntoOptions(rawArgs) {
       }
     );
     return {
+      start: args["--start"] || false,
       share: args["--share"] || false,
       config: args["--config"] || false,
       list: args["--list"] || false,
@@ -47,6 +51,7 @@ function parseArgumentsIntoOptions(rawArgs) {
       help: args["--help"] || false,
       param: args._[0] || false,
       setup: args._[1] || false,
+      extra: args._[2] || false,
     };
   } catch (e) {
     console.log(e);
@@ -82,9 +87,15 @@ export async function cli(args) {
     );
     let options = parseArgumentsIntoOptions(args);
     //console.log(options);
-    let values = { param: options.param, setup: options.setup };
+    let values = {
+      param: options.param,
+      setup: options.setup,
+      extra: options.extra,
+    };
     delete options.param;
     delete options.setup;
+    delete options.extra;
+
     if (
       _.filter(options, function (o) {
         return o;
@@ -96,18 +107,31 @@ export async function cli(args) {
         return option;
       });
       switch (selection) {
+        case "start":
+          let port = await getSetupPort();
+          await startServer(port);
+          break;
         case "share":
           if (!values.param) options = await prompPathName(options);
           else options.param = values.param;
           await fileShare(options);
           break;
         case "config":
-          if (!values.setup) showErrorMessages("Please enter the URL.");
-          else options.param = values.param;
-          switch (options.param) {
+          if (!values.param)
+            showErrorMessages("Please especify the configuration: URL, Port");
+          else if (!values.setup)
+            showErrorMessages("Please enter the configuration value.");
+          switch (values.param) {
             case "url":
               await setupURL(values.setup);
-              console.log("URL Updated Succesfully.");
+              console.log("URL Access Updated Succesfully.");
+              break;
+            case "port":
+              await setupPort(values.setup);
+              console.log("Running port Updated Succesfully.");
+              break;
+            default:
+              showErrorMessages("This configuration type is not allowed.");
               break;
           }
           break;
@@ -192,6 +216,10 @@ async function showHelpMessages() {
     console.log("Usage: " + chalk.blueBright("  fichier {command} [options]"));
     console.log(" \n");
     console.log("Comands: ");
+    console.log(
+      chalk.greenBright("  --start ") +
+        " \t - Start sharing server from a task manager."
+    );
     console.log(
       chalk.greenBright("  --share | -s") +
         " \t - Share files or folders from your computer."
