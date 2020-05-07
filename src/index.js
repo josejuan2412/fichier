@@ -5,12 +5,14 @@ const uid = new ShortUniqueId();
 
 import {
   getFilePath,
+  getFolderPath,
   addFile,
-  addFolder,
+  addDirectory,
   getURL,
   setURL,
   clearSharing,
   removeFile,
+  removeDirectory,
   setPort,
   getPort,
 } from "../helpers/fileHandler";
@@ -35,6 +37,30 @@ export async function fileShare(options) {
     let url = await getURL();
     await generateQR(url + "/download/" + options.id);
     return;
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+export async function directoryShare(options) {
+  try {
+    let id = uid();
+    var exist = false;
+    do {
+      if (await getFilePath(id)) {
+        exist = !exist;
+      }
+    } while (exist);
+    options = {
+      ...options,
+      targetDirectory: options.targetDirectory || process.cwd(),
+      currentFileUrl: import.meta.url,
+      id: id,
+    };
+    await addDirectory(options);
+    let url = await getURL();
+    await generateQR(url + "/download/" + options.id);
+    return options;
   } catch (e) {
     console.log(e);
   }
@@ -84,10 +110,13 @@ export async function deleteSharingID(id) {
   try {
     let file = await getFilePath(id);
     if (file) {
-      //console.log(file);
       await removeFile(id);
+      console.log(id + " file deleted Succesfully.");
+    } else if (await getFolderPath(id)) {
+      await removeDirectory(id, await getFolderPath(id));
+      console.log(id + " directory deleted Succesfully.");
     } else {
-      console.log("file does not exist, no changes were made.");
+      console.log("this ID does not exist, no changes were made.");
     }
     return;
   } catch (e) {

@@ -1,5 +1,7 @@
 import fs from "fs";
 import _ from "lodash";
+import archiver from "archiver";
+import path from "path";
 
 export async function addFile(options) {
   return new Promise((resolve, reject) => {
@@ -68,6 +70,36 @@ export async function removeFile(value) {
   });
 }
 
+export async function removeDirectory(value, info) {
+  return new Promise((resolve, reject) => {
+    try {
+      fs.readFile(__dirname + "/sharing.json", (err, data) => {
+        if (err) throw err;
+        let doc = JSON.parse(data);
+        doc.folders = _.filter(doc.folders, function (o) {
+          return o.id !== value;
+        });
+        fs.writeFileSync(
+          __dirname + "/sharing.json",
+          JSON.stringify(doc, null, 2)
+        );
+        if (err) throw err;
+        fs.unlink(
+          path.join(info.path + "../") + "fishier-" + value + ".zip",
+          function (err) {
+            if (err) throw err;
+            console.log("ZIP File deleted!");
+            resolve();
+          }
+        );
+      });
+    } catch (error) {
+      console.log(error);
+      reject(error);
+    }
+  });
+}
+
 export async function getFilePath(id) {
   return new Promise((resolve, reject) => {
     try {
@@ -76,7 +108,7 @@ export async function getFilePath(id) {
           if (error) console.error(error);
           let sharing = JSON.parse(data);
           let results = _.find(sharing.files, { id: id });
-          if (!results) results = _.find(sharing.folders, { id: id });
+          //  if (!results) results = _.find(sharing.folders, { id: id });
           resolve(results);
         });
       } else {
@@ -89,47 +121,85 @@ export async function getFilePath(id) {
   });
 }
 
-export async function addFolder(options) {
+export async function getFolderPath(id) {
   return new Promise((resolve, reject) => {
     try {
-      let stats = fs.statSync(__dirname + "/sharing.json");
-      fs.readFile(__dirname + "/sharing.json", (err, data) => {
-        if (err) throw err;
-        let files = JSON.parse(data);
-        files["folders"].push({
-          id: options.id,
-          path: options.targetDirectory,
+      if (fs.existsSync(__dirname + "/sharing.json")) {
+        fs.readFile(__dirname + "/sharing.json", (error, data) => {
+          if (error) console.error(error);
+          let sharing = JSON.parse(data);
+          let results = _.find(sharing.folders, { id: id });
+          resolve(results);
         });
-        fs.writeFileSync(
-          __dirname + "/sharing.json",
-          JSON.stringify(files, null, 2)
-        );
-        if (err) throw err;
-        resolve(options);
-      });
-    } catch (e) {
-      let fileType = JSON.stringify(
-        {
-          files: [],
-          folders: [{ id: options.id, path: options.targetDirectory }],
-        },
-        null,
-        2
-      );
-      fs.writeFileSync(__dirname + "/sharing.json", fileType, (err) => {
-        if (err) throw err;
-        resolve(options);
-      });
+      } else {
+        resolve(undefined);
+      }
+    } catch (error) {
+      console.log(error);
+      reject(error);
     }
   });
 }
 
-export async function removeFolder() {
+export async function addDirectory(options) {
   return new Promise((resolve, reject) => {
     try {
-    } catch (error) {
-      console.log(error);
-      reject(error);
+      console.log("creating ZIP File...");
+      if (options.param[options.param.length - 1] !== "/") options.param += "/";
+      //console.log(options);
+      var output = fs.createWriteStream(
+        path.join(options.param + "../") + "fishier-" + options.id + ".zip"
+      );
+      var archive = archiver("zip", {
+        zlib: { level: 9 },
+      });
+
+      output.on("close", function () {
+        if (fs.existsSync(__dirname + "/sharing.json")) {
+          fs.readFile(__dirname + "/sharing.json", (err, data) => {
+            if (err) throw err;
+            let doc = JSON.parse(data);
+            doc["folders"].push({
+              id: options.id,
+              path: options.param,
+            });
+            fs.writeFileSync(
+              __dirname + "/sharing.json",
+              JSON.stringify(doc, null, 2)
+            );
+            if (err) throw err;
+            resolve(options);
+          });
+        } else {
+          let fileType = JSON.stringify(
+            {
+              files: [],
+              folders: [
+                {
+                  id: options.id,
+                  path: options.param,
+                },
+              ],
+            },
+            null,
+            2
+          );
+          fs.writeFileSync(__dirname + "/sharing.json", fileType, (err) => {
+            if (err) throw err;
+            resolve(options);
+          });
+        }
+      });
+
+      archive.on("error", function (err) {
+        console.log(err);
+        throw err;
+      });
+      archive.pipe(output);
+      archive.directory(path.join(options.param), false);
+      archive.finalize();
+    } catch (e) {
+      reject(e);
     }
   });
 }

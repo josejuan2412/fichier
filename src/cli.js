@@ -12,6 +12,7 @@ import {
   deleteSharingID,
   setupPort,
   getSetupPort,
+  directoryShare,
 } from "./index";
 import { startServer } from "../app";
 import path from "path";
@@ -64,7 +65,7 @@ async function prompPathName(options) {
     questions.push({
       type: "input",
       name: "file",
-      message: "Wich file you want to share?",
+      message: "enter the file or folder you want to share?",
     });
 
     const answers = await inquirer.prompt(questions);
@@ -114,7 +115,14 @@ export async function cli(args) {
         case "share":
           if (!values.param) options = await prompPathName(options);
           else options.param = values.param;
-          await fileShare(options);
+          let stats = fs.lstatSync(values.param);
+          if (stats.isDirectory()) {
+            await directoryShare(values);
+          } else if (stats.isFile()) {
+            await fileShare(options);
+          } else {
+            showErrorMessages("We cannot share the file or folder selected.");
+          }
           break;
         case "config":
           if (!values.param)

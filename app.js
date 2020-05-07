@@ -1,7 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
-//import { renderDownloadView } from "./views/render.js";
-import { getFilePath } from "./helpers/fileHandler";
+import path from "path";
+import { getFilePath, getFolderPath } from "./helpers/fileHandler";
 
 const app = express();
 
@@ -21,42 +21,31 @@ app.use(function (req, res, next) {
   next();
 });
 
-app.get("/download/:file", async (req, res) => {
-  let file = req.params.file;
-  let result = await getFilePath(file);
-  console.log(result);
-  if (result) {
-    res.download(result.path);
-  } else {
-    res.status(404).send({
-      status: 404,
-      success: false,
+app.get("/download/:id", async (req, res) => {
+  try {
+    let id = req.params.id;
+    let type = "file";
+    let result = await getFilePath(id);
+    if (result) {
+      res.download(result.path);
+    } else if (!result) {
+      result = await getFolderPath(id);
+      res.download(path.join(result.path + "../") + "fishier-" + id + ".zip");
+    } else {
+      res.status(404).send({
+        payload: {
+          message: "not found.",
+        },
+      });
+    }
+  } catch (e) {
+    res.status(500).send({
       payload: {
-        message: "File not found.",
+        message: "Internal Server Error.",
       },
     });
   }
 });
-
-// app.get("/folder", function (req, res) {
-//   console.log(express.static(__dirname + "/src"));
-//   express.static(__dirname + "/src");
-// });
-
-// app.use("/folder", function (req, res) {
-//   express.static("src"), serveIndex("src", { icons: true });
-// });
-// app.use(
-//   "/folder/:file",
-//   express.static("src"),
-//   serveIndex("src", { icons: true })
-// );
-
-// app.use("/folder/:id", function (req, res, next) {
-//   console.log(req);
-//   express.static("src"), serveIndex("src", { icons: true });
-//   next();
-// });
 
 export async function startServer(port) {
   try {
