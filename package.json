@@ -1,6 +1,6 @@
 {
   "name": "fichier",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "File transfers CLI.",
   "main": "app.js",
   "bin": {
