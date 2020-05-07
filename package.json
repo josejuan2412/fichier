@@ -1,10 +1,11 @@
 {
-  "name": "@josejuan2412/fichier",
+  "name": "fichier",
   "version": "1.0.0",
-  "description": "File transfer CLI",
+  "description": "File transfers CLI.",
   "main": "app.js",
   "bin": {
-    "fichier": "bin/fichier"
+    "fichier": "bin/fichier",
+    "@josejuan2412/fichier": "bin/fichier"
   },
   "publishConfig": {
     "access": "public"
@@ -13,11 +14,20 @@
     "start": "nodemon -r esm app.js"
   },
   "keywords": [
-    "cli",
-    "fichier"
+    "CLI",
+    "fichier",
+    "sharing"
   ],
-  "author": "",
+  "author": "Jose Juan Jaen",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/josejuan2412/fichier"
+  },
+  "bugs": {
+    "url": "https://github.com/josejuan2412/fichier/issues"
+  },
+  "homepage": "https://github.com/josejuan2412/fichier ",
   "dependencies": {
     "arg": "^4.1.3",
     "body-parser": "^1.19.0",
