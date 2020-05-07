@@ -38,7 +38,7 @@ export async function fileShare(options) {
     await generateQR(url + "/download/" + options.id);
     return;
   } catch (e) {
-    console.log(e);
+    console.log("There was an error, please try again");
   }
 }
 
@@ -62,7 +62,7 @@ export async function directoryShare(options) {
     await generateQR(url + "/download/" + options.id);
     return options;
   } catch (e) {
-    console.log(e);
+    console.log("There was an error, please try again");
   }
 }
 
@@ -71,7 +71,7 @@ export async function getSetupPort() {
     let port = await getPort();
     return port;
   } catch (e) {
-    console.log(e);
+    console.log("There was an error, please try again");
   }
 }
 
@@ -80,7 +80,7 @@ export async function setupURL(url) {
     await setURL(url);
     return;
   } catch (e) {
-    console.log(e);
+    console.log("There was an error, please try again");
   }
 }
 
@@ -89,20 +89,21 @@ export async function setupPort(port) {
     await setPort(port);
     return;
   } catch (e) {
-    console.log(e);
+    console.log("There was an error, please try again");
   }
 }
 
 export async function showFileQR(id) {
   try {
-    let file = await getFilePath(id);
-    if (file) {
-      let url = await getURL();
-      await generateQR(url + "/download/" + file.id);
+    let url = await getURL();
+    let result = await getFilePath(id);
+    if (!result) {
+      result = await getFolderPath(id);
     }
+    await generateQR(url + "/download/" + result.id);
     return;
   } catch (e) {
-    console.log(e);
+    console.log("There was an error, please try again");
   }
 }
 
@@ -120,7 +121,7 @@ export async function deleteSharingID(id) {
     }
     return;
   } catch (e) {
-    console.log(e);
+    console.log("There was an error, please try again");
   }
 }
 
@@ -129,7 +130,7 @@ export async function clearSharingFile() {
     await clearSharing();
     return;
   } catch (e) {
-    console.log(e);
+    console.log("There was an error, please try again");
   }
 }
 
@@ -140,6 +141,6 @@ const generateQR = async (text) => {
     });
     console.log("URL: " + text);
   } catch (err) {
-    console.error(err);
+    console.log("There was an error, please try again");
   }
 };

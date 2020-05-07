@@ -55,7 +55,8 @@ function parseArgumentsIntoOptions(rawArgs) {
       extra: args._[2] || false,
     };
   } catch (e) {
-    console.log(e);
+    showErrorMessages("Please enter a valid comand.");
+    return false;
   }
 }
 
@@ -87,120 +88,132 @@ export async function cli(args) {
       chalk.blue(figlet.textSync("FICHIER", { horizontalLayout: "full" }))
     );
     let options = parseArgumentsIntoOptions(args);
-    //console.log(options);
-    let values = {
-      param: options.param,
-      setup: options.setup,
-      extra: options.extra,
-    };
-    delete options.param;
-    delete options.setup;
-    delete options.extra;
 
-    if (
-      _.filter(options, function (o) {
-        return o;
-      }).length > 1
-    ) {
-      showErrorMessages("Multiple commands entered, please follow the usage.");
-    } else {
-      let selection = _.findKey(options, function (option) {
-        return option;
-      });
-      switch (selection) {
-        case "start":
-          let port = await getSetupPort();
-          await startServer(port);
-          break;
-        case "share":
-          if (!values.param) options = await prompPathName(options);
-          else options.param = values.param;
-          let stats = fs.lstatSync(values.param);
-          if (stats.isDirectory()) {
-            await directoryShare(values);
-          } else if (stats.isFile()) {
-            await fileShare(options);
-          } else {
-            showErrorMessages("We cannot share the file or folder selected.");
-          }
-          break;
-        case "config":
-          console.log(values);
-          if (!values.param)
-            showErrorMessages("Please especify the configuration: URL, Port");
-          else if (!values.setup)
-            showErrorMessages("Please enter the configuration value.");
-          else {
-            switch (values.param) {
-              case "url":
-                await setupURL(values.setup);
-                console.log("URL Access Updated Succesfully.");
-                break;
-              case "port":
-                await setupPort(values.setup);
-                console.log("Running port Updated Succesfully.");
-                break;
-              default:
-                showErrorMessages("This configuration type is not allowed.");
-                break;
-            }
-          }
-          break;
-        case "list":
-          let files = [];
-          let fileLocation = path.join(__dirname, "../helpers/sharing.json");
-          fs.readFile(fileLocation, (err, data) => {
-            if (err) throw err;
-            files = JSON.parse(data);
-            console.log("*** Shared Files: ***");
-            files.files.forEach(function (value, key) {
-              console.log("  " + value.id + "\t" + value.path);
+    if (options) {
+      let values = {
+        param: options.param,
+        setup: options.setup,
+        extra: options.extra,
+      };
+      delete options.param;
+      delete options.setup;
+      delete options.extra;
+
+      if (
+        _.filter(options, function (o) {
+          return o;
+        }).length > 1
+      ) {
+        showErrorMessages(
+          "Multiple commands entered, please follow the usage."
+        );
+      } else {
+        let selection = _.findKey(options, function (option) {
+          return option;
+        });
+        switch (selection) {
+          case "start":
+            let port = await getSetupPort();
+            await startServer(port);
+            break;
+          case "share":
+            if (!values.param) options = await prompPathName(options);
+            else options.param = values.param;
+            fs.access(options.param, fs.F_OK, async (err) => {
+              if (err) {
+                showErrorMessages("file does not exist.");
+                return;
+              }
+              let stats = fs.lstatSync(values.param);
+              if (stats.isDirectory()) {
+                await directoryShare(values);
+              } else if (stats.isFile()) {
+                await fileShare(options);
+              } else {
+                showErrorMessages(
+                  "We cannot share the file or folder selected."
+                );
+              }
             });
-            if (files.files.length == 0) {
-              console.log(" \t No Files");
+
+            break;
+          case "config":
+            if (!values.param)
+              showErrorMessages("Please especify the configuration: URL, Port");
+            else if (!values.setup)
+              showErrorMessages("Please enter the configuration value.");
+            else {
+              switch (values.param) {
+                case "url":
+                  await setupURL(values.setup);
+                  console.log("URL Access Updated Succesfully.");
+                  break;
+                case "port":
+                  await setupPort(values.setup);
+                  console.log("Running port Updated Succesfully.");
+                  break;
+                default:
+                  showErrorMessages("This configuration type is not allowed.");
+                  break;
+              }
             }
-            console.log("\n\n*** Shared Folders: ***");
-            files.folders.forEach(function (value, key) {
-              console.log("  " + value.id + "\t" + value.path);
+            break;
+          case "list":
+            let files = [];
+            let fileLocation = path.join(__dirname, "../helpers/sharing.json");
+            fs.readFile(fileLocation, (err, data) => {
+              if (err) throw err;
+              files = JSON.parse(data);
+              console.log("*** Shared Files: ***");
+              files.files.forEach(function (value, key) {
+                console.log("  " + value.id + "\t" + value.path);
+              });
+              if (files.files.length == 0) {
+                console.log(" \t No Files");
+              }
+              console.log("\n\n*** Shared Folders: ***");
+              files.folders.forEach(function (value, key) {
+                console.log("  " + value.id + "\t" + value.path);
+              });
+              if (files.folders.length == 0) {
+                console.log(" \t No Shared Folders");
+              }
+              console.log(" \n");
             });
-            if (files.folders.length == 0) {
-              console.log(" \t No Shared Folders");
+            break;
+          case "display":
+            if (!values.param) {
+              showErrorMessages(
+                "Please enter the ID of the file or folder you want to display."
+              );
+            } else {
+              showFileQR(values.param);
             }
-            console.log(" \n");
-          });
-          break;
-        case "display":
-          if (!values.param) {
-            showErrorMessages(
-              "Please enter the ID of the file or folder you want to display."
-            );
-          } else {
-            showFileQR(values.param);
-          }
-          break;
-        case "clear":
-          clearSharingFile();
-          break;
-        case "remove":
-          if (!values.param) {
-            showErrorMessages(
-              "Please enter the ID of the file or folder you want to remove."
-            );
-          } else {
-            deleteSharingID(values.param);
-          }
-          break;
-        case "help":
-          showHelpMessages();
-          break;
-        default:
-          showHelpMessages();
-          //mostUsedCommands();
-          break;
+            break;
+          case "clear":
+            clearSharingFile();
+            console.log("Sharing cleared successfully.");
+            break;
+          case "remove":
+            if (!values.param) {
+              showErrorMessages(
+                "Please enter the ID of the file or folder you want to remove."
+              );
+            } else {
+              deleteSharingID(values.param);
+            }
+            break;
+          case "help":
+            showHelpMessages();
+            break;
+          default:
+            showHelpMessages();
+            break;
+        }
       }
     }
   } catch (e) {
-    console.log(e);
+    showErrorMessages("There was an error, please try again.");
   }
 }
 

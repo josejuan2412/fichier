@@ -30,7 +30,15 @@ app.get("/download/:id", async (req, res) => {
       res.download(result.path);
     } else if (!result) {
       result = await getFolderPath(id);
-      res.download(path.join(result.path + "../") + "fishier-" + id + ".zip");
+      if (result)
+        res.download(path.join(result.path + "../") + "fishier-" + id + ".zip");
+      else {
+        res.status(404).send({
+          payload: {
+            message: "not found.",
+          },
+        });
+      }
     } else {
       res.status(404).send({
         payload: {
