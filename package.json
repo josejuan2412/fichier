@@ -1,0 +1,35 @@
+{
+  "name": "@josejuan2412/fichier",
+  "version": "1.0.0",
+  "description": "File transfer CLI",
+  "main": "app.js",
+  "bin": {
+    "fichier": "bin/fichier"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "start": "nodemon -r esm app.js"
+  },
+  "keywords": [
+    "cli",
+    "fichier"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "arg": "^4.1.3",
+    "body-parser": "^1.19.0",
+    "chalk": "^4.0.0",
+    "clear": "^0.1.0",
+    "esm": "^3.2.25",
+    "express": "^4.17.1",
+    "figlet": "^1.4.0",
+    "inquirer": "^7.1.0",
+    "lodash": "^4.17.15",
+    "qrcode-terminal": "^0.12.0",
+    "serve-index": "^1.9.1",
+    "short-unique-id": "^3.0.0-rc1"
+  }
+}
