@@ -4,6 +4,10 @@ import chalk from "chalk";
 import figlet from "figlet";
 import clear from "clear";
 import _ from "lodash";
+import path from "path";
+import fs from "fs";
+
+import { startServer } from "../app";
 import {
   fileShare,
   setupURL,
@@ -14,9 +18,6 @@ import {
   getSetupPort,
   directoryShare,
 } from "./index";
-import { startServer } from "../app";
-import path from "path";
-import fs from "fs";
 
 function parseArgumentsIntoOptions(rawArgs) {
   try {
@@ -74,7 +75,68 @@ async function prompPathName(options) {
       await prompPathName(options);
     }
     return {
-      file: options.file || answers.file,
+      param: options.file || answers.file,
+    };
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+async function prompConfigType(options) {
+  try {
+    console.log(options);
+    const questions = [];
+
+    if (!options.param) {
+      questions.push({
+        type: "list",
+        name: "param",
+        message: "Please choose the configuration to change:",
+        choices: ["url", "Server Port"],
+        default: "url",
+      });
+    }
+
+    questions.push({
+      type: "input",
+      name: "setup",
+      message: "Enter the value:",
+    });
+
+    const answers = await inquirer.prompt(questions);
+    if (answers.setup.length == 0) {
+      options.param = answers.param;
+      var promptext = await prompConfigValue(options);
+      return {
+        param: options.param || answers.param,
+      };
+    }
+    return {
+      param: options.param || answers.param,
+      setup: options.setup || answers.setup,
+    };
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+async function prompConfigValue(options) {
+  try {
+    const questions = [];
+    questions.push({
+      type: "input",
+      name: "setup",
+      message: "Please enter the configuration value: ",
+    });
+
+    const answers = await inquirer.prompt(questions);
+    if (answers.setup.length == 0) {
+      console.log("No value were entered.");
+      return;
+    }
+    return {
+      param: options.param,
+      setup: answers.setup,
     };
   } catch (e) {
     console.log(e);
@@ -88,7 +150,6 @@ export async function cli(args) {
       chalk.blue(figlet.textSync("FICHIER", { horizontalLayout: "full" }))
     );
     let options = parseArgumentsIntoOptions(args);
-
     if (options) {
       let values = {
         param: options.param,
@@ -98,7 +159,6 @@ export async function cli(args) {
       delete options.param;
       delete options.setup;
       delete options.extra;
-
       if (
         _.filter(options, function (o) {
           return o;
@@ -117,45 +177,93 @@ export async function cli(args) {
             await startServer(port);
             break;
           case "share":
-            if (!values.param) options = await prompPathName(options);
-            else options.param = values.param;
-            fs.access(options.param, fs.F_OK, async (err) => {
+            !values.param && (values = await prompPathName(options));
+            console.log("current folder: " + path.resolve(process.cwd()));
+            fs.access(values.param, fs.F_OK, async (err) => {
               if (err) {
-                showErrorMessages("file does not exist.");
+                fs.access(
+                  path.resolve(process.cwd()) + values.param,
+                  fs.F_OK,
+                  async (err) => {
+                    if (err) {
+                      showErrorMessages("That file or folder does not exist");
+                      return;
+                    } else {
+                      console.log(
+                        "exist in: " +
+                          path.resolve(process.cwd()) +
+                          values.param
+                      );
+                      let stats = fs.lstatSync(
+                        path.resolve(process.cwd()) + values.param
+                      );
+                      values.param = path.resolve(process.cwd()) + values.param;
+                      if (stats.isDirectory()) {
+                        await directoryShare(values);
+                      } else if (stats.isFile()) {
+                        await fileShare(values);
+                      } else {
+                        showErrorMessages(
+                          "We cannot share the file or folder selected."
+                        );
+                      }
+                    }
+                  }
+                );
+                return;
+              } else {
+                let stats = fs.lstatSync(values.param);
+                if (stats.isDirectory()) {
+                  await directoryShare(values);
+                } else if (stats.isFile()) {
+                  await fileShare(values);
+                } else {
+                  showErrorMessages(
+                    "We cannot share the file or folder selected."
+                  );
+                }
                 return;
               }
-              let stats = fs.lstatSync(values.param);
-              if (stats.isDirectory()) {
-                await directoryShare(values);
-              } else if (stats.isFile()) {
-                await fileShare(options);
-              } else {
-                showErrorMessages(
-                  "We cannot share the file or folder selected."
-                );
-              }
             });
-
             break;
           case "config":
-            if (!values.param)
-              showErrorMessages("Please especify the configuration: URL, Port");
-            else if (!values.setup)
-              showErrorMessages("Please enter the configuration value.");
-            else {
+            if (!values.param) {
+              values = await prompConfigType(values);
+            } else if (!values.setup) {
+              values = await prompConfigValue(values);
+            }
+            if (values.param && values.setup) {
               switch (values.param) {
                 case "url":
-                  await setupURL(values.setup);
-                  console.log("URL Access Updated Succesfully.");
+                  var regex = RegExp("(https?://.*)");
+                  if (regex.test(values.setup)) {
+                    await setupURL(values.setup);
+                    console.log("URL Access Updated Succesfully.");
+                  } else {
+                    showErrorMessages(
+                      "Invalid URL: should be protocol+addres +optional:port (example: http://localhost:3000 or https://999999.ngrok.io)"
+                    );
+                  }
                   break;
                 case "port":
-                  await setupPort(values.setup);
-                  console.log("Running port Updated Succesfully.");
+                  var regex = RegExp(
+                    "^([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+                  );
+                  if (regex.test(values.setup)) {
+                    await setupPort(values.setup);
+                    console.log("Running port Updated Succesfully.");
+                  } else {
+                    showErrorMessages(
+                      "Invalid port: should be a number between [1 - 65535]"
+                    );
+                  }
                   break;
                 default:
                   showErrorMessages("This configuration type is not allowed.");
                   break;
               }
+            } else {
+              showErrorMessages("Missing configuration value.");
             }
             break;
           case "list":
@@ -178,6 +286,8 @@ export async function cli(args) {
               if (files.folders.length == 0) {
                 console.log(" \t No Shared Folders");
               }
+              console.log(" \n");
+              console.log("Config file location: " + __dirname + "/helpers");
               console.log(" \n");
             });
             break;
@@ -235,7 +345,6 @@ async function mostUsedCommands(value) {
 
 async function showHelpMessages() {
   try {
-    //console.log("Share your files with ease.");
     console.log(" \n");
     console.log("Usage: " + chalk.blueBright("  fichier {command} [options]"));
     console.log(" \n");
@@ -276,7 +385,6 @@ async function showHelpMessages() {
     );
     console.log(chalk.yellowBright("  fichier config URL"));
     console.log(chalk.yellowBright("  fichier --remove FileID"));
-
     console.log(" \n");
   } catch (e) {
     console.log(e);

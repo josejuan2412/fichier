@@ -2,9 +2,9 @@
 
 ![alt text][logo]
 
-# Fichier:
+# Fichier
 
-Share your files with ease.
+Share files from your computer with other devices even around the world with ease.
 
 ## Highlights
 
