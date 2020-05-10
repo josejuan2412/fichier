@@ -84,7 +84,6 @@ async function prompPathName(options) {
 
 async function prompConfigType(options) {
   try {
-    console.log(options);
     const questions = [];
 
     if (!options.param) {
@@ -178,6 +177,8 @@ export async function cli(args) {
             break;
           case "share":
             !values.param && (values = await prompPathName(options));
+            if (values.param.substring(0, 1) != "/")
+              values.param = "/" + values.param;
             console.log("current folder: " + path.resolve(process.cwd()));
             fs.access(values.param, fs.F_OK, async (err) => {
               if (err) {
